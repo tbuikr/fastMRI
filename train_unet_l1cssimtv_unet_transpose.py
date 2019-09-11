@@ -34,7 +34,7 @@ class DataTransform:
     Data Transformer for training U-Net models.
     """
 
-    def __init__(self, mask_func, resolution, which_challenge, use_seed=True):
+    def __init__(self, mask_func, resolution, which_challenge, use_seed=True, use_aug=False):
         """
         Args:
             mask_func (common.subsample.MaskFunc): A function that can create a mask of
@@ -51,6 +51,27 @@ class DataTransform:
         self.resolution = resolution
         self.which_challenge = which_challenge
         self.use_seed = use_seed
+        self.use_aug= use_aug
+
+    # noinspection PyTypeChecker
+    def augment_data(self, ds_slice, gt_slice):
+        prob = torch.tensor(0.5)
+        flip_lr = torch.rand(()) < prob
+        flip_ud = torch.rand(()) < prob
+
+        if flip_lr and flip_ud:
+            ds_slice = torch.flip(ds_slice, dims=[-2, -1])
+            gt_slice = torch.flip(gt_slice, dims=[-2, -1])
+
+        elif flip_lr:
+            ds_slice = torch.flip(ds_slice, dims=[-1])
+            gt_slice = torch.flip(gt_slice, dims=[-1])
+
+        elif flip_ud:
+            ds_slice = torch.flip(ds_slice, dims=[-2])
+            gt_slice = torch.flip(gt_slice, dims=[-2])
+
+        return ds_slice, gt_slice
 
     def __call__(self, kspace, target, attrs, fname, slice):
         """
@@ -90,6 +111,9 @@ class DataTransform:
         # Normalize target
         target = transforms.normalize(target, mean, std, eps=1e-11)
         target = target.clamp(-6, 6)
+        #augment data
+        if self.use_aug:
+           image, target = self.augment_data(image, target)
         return image, target, mean, std, attrs['norm'].astype(np.float32)
 
 
@@ -99,15 +123,15 @@ def create_datasets(args):
 
     train_data = SliceData(
         root=args.data_path / f'{args.challenge}_train',
-        transform=DataTransform(train_mask, args.resolution, args.challenge),
+        transform=DataTransform(train_mask, args.resolution, args.challenge,use_aug=args.aug),
         sample_rate=args.sample_rate,
         challenge=args.challenge
     )
     dev_data = SliceData(
         root=args.data_path / f'{args.challenge}_val',
-        transform=DataTransform(dev_mask, args.resolution, args.challenge, use_seed=True),
+        transform=DataTransform(dev_mask, args.resolution, args.challenge, use_seed=True, use_aug=False),
         sample_rate=args.sample_rate,
-        challenge=args.challenge,
+        challenge=args.challenge
     )
     return dev_data, train_data
 
@@ -228,7 +252,7 @@ def save_model(args, exp_dir, epoch, model, optimizer, best_dev_loss, is_new_bes
 
 
 def build_model(args):
-    model = define_Gen(input_nc=1, output_nc=1, ngf=args.num_chans, netG='unet_transpose', norm='instance', drop_prob= args.drop_prob)
+    model = define_Gen(input_nc=1, output_nc=1, ngf=args.num_chans, netG=args.netG, norm='instance', drop_prob= args.drop_prob)
     model = model.to(args.device)
     return model
 
@@ -319,6 +343,10 @@ def create_arg_parser():
                              '"--checkpoint" should be set with this')
     parser.add_argument('--checkpoint', type=str,
                         help='Path to an existing checkpoint. Used along with "--resume"')
+    parser.add_argument('--aug', type=bool,default=False, 
+                        help='Augmentation data')
+    parser.add_argument('--netG', type=str, default='unet_transpose',
+                        help='name of gen net')
     return parser
 
 

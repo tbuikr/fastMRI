@@ -204,13 +204,131 @@ class UnetGenerator(nn.Module):
         out_block_up_down_21 = torch.cat([out_block_up_21,out_block_down_10], 1)
         out_block_up_down_21_merge = self.block_up_down_merge_21(out_block_up_down_21) 
         out_block_classifier_11= self.block_classifier_11(out_block_up_down_21_merge)      
-        return out_block_classifier_11   
+        return out_block_classifier_11  
+
+
+class UnetResGenerator(nn.Module):
+
+    def __init__(self, in_chans=1, out_chans = 1, num_init_features=32,  norm_layer=nn.BatchNorm2d, drop_prob= 0.0):
+
+        super(UnetResGenerator, self).__init__()
+        if type(norm_layer) == functools.partial:
+            use_bias = norm_layer.func == nn.InstanceNorm2d
+        else:
+            use_bias = norm_layer == nn.InstanceNorm2d
+
+        #--------------- Downsampling path ----------------------
+        in_channel_block10, out_channel_block10 = in_chans, num_init_features
+        self.block_down_10 = nn.Sequential(OrderedDict([
+            ('conv_down_block_10', ConvBlock(in_channel_block10, num_init_features, drop_prob))     
+        ]))   
+        
+        in_channel_block20, out_channel_block20 = out_channel_block10, out_channel_block10 * 2
+        self.block_down_20 = nn.Sequential(OrderedDict([            
+            ('conv_down_block_20', ConvBlock(in_channel_block20, out_channel_block20, drop_prob)),
+            #('conv_down_block_21', nn.MaxPool2d(kernel_size=2))
+        ]))   
+        self.block_down_20_pool =  nn.MaxPool2d(kernel_size=2)
+
+        in_channel_block30, out_channel_block30 = out_channel_block20, out_channel_block20 * 2
+        self.block_down_30 = nn.Sequential(OrderedDict([
+             ('conv_down_block_30', ConvBlock(in_channel_block30, out_channel_block30, drop_prob)),
+             #('conv_down_block_31', nn.MaxPool2d(kernel_size=2))
+        ]))  
+        self.block_down_30_pool =  nn.MaxPool2d(kernel_size=2)
+
+        in_channel_block40, out_channel_block40 = out_channel_block30, out_channel_block30 * 2
+        self.block_down_40 = nn.Sequential(OrderedDict([
+            ('conv_down_block_40', ConvBlock(in_channel_block40, out_channel_block40, drop_prob)),
+            #('conv_down_block_41', nn.MaxPool2d(kernel_size=2))
+        ]))       
+        self.block_down_40_pool =  nn.MaxPool2d(kernel_size=2)
+
+        # --------Squeeze layer------------------
+        in_channel_block_mid, out_channel_block_mid = out_channel_block40, out_channel_block40
+        self.block_middle = nn.Sequential(OrderedDict([
+            ('conv_down_block_middle', ConvBlock(in_channel_block_mid, out_channel_block_mid, drop_prob))           
+        ]))   
+
+        #-------------Upsampling path-------------- 
+        in_channel_block41, out_channel_block41  = out_channel_block40, out_channel_block40
+        self.block_up_41 = nn.Sequential(OrderedDict([
+            ('conv41', nn.ConvTranspose2d(in_channel_block41, out_channel_block41, kernel_size=4, stride=2, padding=1, bias=use_bias)),
+            ('norm41', norm_layer(out_channel_block41)),   
+        ])) 
+        in_channel_block_merge_41 = in_channel_block41 + out_channel_block30
+        out_channel_block_merge_41 = in_channel_block_merge_41 // 2
+        self.block_up_down_merge_41 = nn.Sequential(OrderedDict([
+            ('conv_up_down_merge_block_41', ConvBlock(in_channel_block_merge_41, out_channel_block_merge_41, drop_prob))       
+        ])) 
+        
+        in_channel_block31, out_channel_block31  = out_channel_block_merge_41, out_channel_block_merge_41
+        self.block_up_31 = nn.Sequential(OrderedDict([
+            ('conv31', nn.ConvTranspose2d(in_channel_block31, out_channel_block31, kernel_size=4, stride=2, padding=1, bias=use_bias)),
+            ('norm31', norm_layer(out_channel_block31)),   
+        ])) 
+        in_channel_block_merge_31 = in_channel_block31 + out_channel_block20
+        out_channel_block_merge_31 = in_channel_block_merge_31 // 2
+        self.block_up_down_merge_31 = nn.Sequential(OrderedDict([
+            ('conv_up_down_merge_block_31', ConvBlock(in_channel_block_merge_31, out_channel_block_merge_31, drop_prob))       
+        ])) 
+
+        in_channel_block21, out_channel_block21  = out_channel_block_merge_31, out_channel_block_merge_31
+        self.block_up_21 = nn.Sequential(OrderedDict([
+            ('conv21', nn.ConvTranspose2d(in_channel_block21, out_channel_block21, kernel_size=4, stride=2, padding=1, bias=use_bias)),
+            ('norm21', norm_layer(out_channel_block21)),   
+        ])) 
+        in_channel_block_merge_21 = in_channel_block21 + out_channel_block10
+        out_channel_block_merge_21 = in_channel_block_merge_31 // 2
+        self.block_up_down_merge_21 = nn.Sequential(OrderedDict([
+            ('conv_up_down_merge_block_21', ConvBlock(in_channel_block_merge_21, out_channel_block_merge_21, drop_prob))       
+        ])) 
+        # ----------Classifier--------------
+        in_channel_block11, out_channel_block11 = out_channel_block_merge_21, out_chans
+        self.block_classifier_11 = nn.Sequential(OrderedDict([             
+            ('conv11', nn.Conv2d(in_channel_block11, in_channel_block11 //2 , kernel_size=1, stride=1, padding=0)),
+            ('conv12', nn.Conv2d(in_channel_block11//2, out_channel_block11 , kernel_size=1, stride=1, padding=0)),
+            ('conv13', nn.Conv2d(out_channel_block11, out_channel_block11, kernel_size=1, stride=1, padding=0)),
+        ]))
+               
+
+    def forward(self, input):
+        #------------Forward downsampling path-------------
+        out_block_down_10 = self.block_down_10(input)        
+        out_block_down_20 = self.block_down_20(out_block_down_10) + out_block_down_10
+        out_block_down_20_pool = self.block_down_20_pool(out_block_down_20)
+
+        out_block_down_30 = self.block_down_30(out_block_down_20_pool) + out_block_down_20_pool
+        out_block_down_30_pool = self.block_down_30_pool(out_block_down_30)
+
+        out_block_down_40 = self.block_down_40(out_block_down_30_pool) + out_block_down_30
+        out_block_down_40_pool = self.block_down_40_pool(out_block_down_40) 
+        #------------Forward middle path-------------
+        out_block_middle = self.block_middle(out_block_down_40) + out_block_down_40
+
+        #------------Forward upsampling path-------------
+        out_block_up_41 = self.block_up_41(out_block_middle)
+        out_block_up_down_41 = torch.cat([out_block_up_41,out_block_down_30], 1)
+        out_block_up_down_41_merge = self.block_up_down_merge_41(out_block_up_down_41) + out_block_up_down_41
+        
+        out_block_up_31 = self.block_up_31(out_block_up_down_41_merge)
+        out_block_up_down_31 = torch.cat([out_block_up_31, out_block_down_20], 1) 
+        out_block_up_down_31_merge = self.block_up_down_merge_31(out_block_up_down_31) + out_block_up_down_31
+        
+        out_block_up_21 = self.block_up_21(out_block_up_down_31_merge)
+        out_block_up_down_21 = torch.cat([out_block_up_21,out_block_down_10], 1)
+        out_block_up_down_21_merge = self.block_up_down_merge_21(out_block_up_down_21) + out_block_up_down_21
+
+        out_block_classifier_11= self.block_classifier_11(out_block_up_down_21_merge)      
+        return out_block_classifier_11    
 
 def define_Gen(input_nc, output_nc, ngf, netG, norm='batch', drop_prob=0.0):
     gen_net = None
     norm_layer = get_norm_layer(norm_type=norm)
     if netG == 'unet_transpose':
         gen_net = UnetGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, drop_prob= drop_prob) 
+    elif netG == 'unet_transpose_res':
+        gen_net = UnetResGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, drop_prob= drop_prob) 
     
     else:
         raise NotImplementedError('Generator model name [%s] is not recognized' % netG)
