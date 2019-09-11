@@ -51,14 +51,14 @@ def init_network(net, init_weight_flag = True):
         init_weights(net)
     return net
 
-def conv_norm_lrelu_2d(in_dim, out_dim, kernel_size, stride = 1, padding=0,
+def conv_norm_lrelu(in_dim, out_dim, kernel_size, stride = 1, padding=0,
                                  norm_layer = nn.BatchNorm2d, bias = False):
     return nn.Sequential(
         nn.Conv2d(in_dim, out_dim, kernel_size, stride, padding, bias = bias),
         norm_layer(out_dim), nn.LeakyReLU(0.2,True))
 
 
-def conv_norm_relu_2d(in_dim, out_dim, kernel_size, stride = 1, padding=0,
+def conv_norm_relu(in_dim, out_dim, kernel_size, stride = 1, padding=0,
                                  norm_layer = nn.BatchNorm2d, bias = False):
     return nn.Sequential(
         nn.Conv2d(in_dim, out_dim, kernel_size, stride, padding, bias = bias),
@@ -93,47 +93,29 @@ def set_grad(nets, requires_grad=False):
 #         #y= self.dis_model(input)
 #         #print(y.shape)
 #         return self.dis_model(input)
+
 class NLayerDiscriminator(nn.Module):
-    """Defines a PatchGAN discriminator"""
-
-    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d):
-        """Construct a PatchGAN discriminator
-        Parameters:
-            input_nc (int)  -- the number of channels in input images
-            ndf (int)       -- the number of filters in the last conv layer
-            n_layers (int)  -- the number of conv layers in the discriminator
-            norm_layer      -- normalization layer
-        """
+    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, use_bias=False):
         super(NLayerDiscriminator, self).__init__()
-        if type(norm_layer) == functools.partial:  # no need to use bias as BatchNorm2d has affine parameters
-            use_bias = norm_layer.func == nn.InstanceNorm2d
-        else:
-            use_bias = norm_layer == nn.InstanceNorm2d
-
-        kw = 4
-        padw = 1
-        sequence = [nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw), nn.LeakyReLU(0.2, True)]
+        dis_model = [nn.Conv2d(input_nc, ndf, kernel_size=4, stride=2, padding=1),
+                     nn.LeakyReLU(0.2, True)]
         nf_mult = 1
         nf_mult_prev = 1
-        for n in range(1, n_layers):  # gradually increase the number of filters
+        for n in range(1, n_layers):
             nf_mult_prev = nf_mult
-            nf_mult = min(2 ** n, 8)
-            sequence += [
-                nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=2, padding=padw, bias=use_bias),
-                norm_layer(ndf * nf_mult),
-                nn.LeakyReLU(0.2, True)
-            ]
-
+            nf_mult = min(2**n, 8)
+            dis_model += [conv_norm_lrelu(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=4, stride=2,
+                                               norm_layer= norm_layer, padding=1, bias=use_bias)]
         nf_mult_prev = nf_mult
-        nf_mult = min(2 ** n_layers, 8)
-        sequence += [
-            nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=1, padding=padw, bias=use_bias),
-            norm_layer(ndf * nf_mult),
-            nn.LeakyReLU(0.2, True)
-        ]
+        nf_mult = min(2**n_layers, 8)
+        dis_model += [conv_norm_lrelu(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=4, stride=1,
+                                               norm_layer= norm_layer, padding=1, bias=use_bias)]
+        dis_model += [nn.Conv2d(ndf * nf_mult, 1, kernel_size=4, stride=1, padding=1)]
 
-        sequence += [nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw)]  # output 1 channel prediction map
-        self.model = nn.Sequential(*sequence)
+        self.dis_model = nn.Sequential(*dis_model)
+
+    def forward(self, input):
+        return self.dis_model(input)
    
 class PixelDiscriminator(nn.Module):
     def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm2d, use_bias=False):
@@ -160,7 +142,7 @@ def define_Dis(input_nc, ndf, netD, n_layers_D=3, norm='batch', gpu_ids=[0]):
         use_bias = norm_layer == nn.InstanceNorm2d
 
     if netD == 'n_layers':
-        dis_net = NLayerDiscriminator(input_nc, ndf, n_layers_D, norm_layer=norm_layer)
+        dis_net = NLayerDiscriminator(input_nc, ndf, n_layers_D, norm_layer=norm_layer,use_bias=use_bias )
     else:
         raise NotImplementedError('Discriminator model name [%s] is not recognized' % netD)
     print (dis_net)

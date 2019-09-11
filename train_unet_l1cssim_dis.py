@@ -165,13 +165,13 @@ def train_epoch(args, epoch, model, model_dis, data_loader, optimizer, optimizer
         set_grad([model_dis], True)  # enable backprop for D
         optimizer_dis.zero_grad()     # set D's gradients to zero
         # Fake
-        fake_AB = torch.cat((input, output), 1)  # we use conditional GANs; we need to feed both input and output to the discriminator
+        fake_AB = output #torch.cat((input, output), 1)  # we use conditional GANs; we need to feed both input and output to the discriminator
         pred_fake = model_dis(fake_AB.detach())
         target_fake = target_fake.expand_as(pred_fake) 
         loss_D_fake = gan_loss_func(pred_fake, target_fake)
         # Real
         
-        real_AB = torch.cat((input, target.unsqueeze(1)), 1)
+        real_AB = target.unsqueeze(1) #torch.cat((input, target.unsqueeze(1)), 1)
         pred_real = model_dis(real_AB)
         target_real = target_real.expand_as(pred_real)
         loss_D_real = gan_loss_func(pred_real, target_real)
@@ -187,7 +187,7 @@ def train_epoch(args, epoch, model, model_dis, data_loader, optimizer, optimizer
         optimizer.zero_grad()        # set G's gradients to zero
         # calculate graidents for G
         # First, G(A) should fake the discriminator
-        fake_AB = torch.cat((input, output), 1)
+        fake_AB = output #torch.cat((input, output), 1)
         pred_fake = model_dis(fake_AB)
         target_real = target_real.expand_as(pred_fake)
         loss_G_GAN = gan_loss_func(pred_fake, target_real)
@@ -285,7 +285,7 @@ def build_model(args):
         num_pool_layers=args.num_pools,
         drop_prob=args.drop_prob
     ).to(args.device)
-    model_dis = define_Dis(input_nc=2, ndf=64, netD= 'n_layers', n_layers_D=5, norm='instance').to(args.device)
+    model_dis = define_Dis(input_nc=1, ndf=64, netD= 'n_layers', n_layers_D=5, norm='instance').to(args.device)
         
     return model, model_dis
 
