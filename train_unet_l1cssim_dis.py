@@ -285,7 +285,7 @@ def build_model(args):
         num_pool_layers=args.num_pools,
         drop_prob=args.drop_prob
     ).to(args.device)
-    model_dis = define_Dis(input_nc=2, ndf=64, netD= 'n_layers', n_layers_D=3, norm='instance').to(args.device)
+    model_dis = define_Dis(input_nc=2, ndf=64, netD= 'n_layers', n_layers_D=5, norm='instance').to(args.device)
         
     return model, model_dis
 
