@@ -152,6 +152,8 @@ def train_epoch(args, epoch, model, model_dis, data_loader, optimizer, optimizer
     global_step = epoch * len(data_loader)
     for iter, data in enumerate(data_loader):
         input, target, mean, std, norm = data
+        if input.size(0)< args.batch_size: 
+            continue
         input = input.unsqueeze(1).to(args.device)
         target = target.to(args.device)    
         
@@ -299,13 +301,13 @@ def load_model(checkpoint_file):
     #model_dis.load_state_dict(checkpoint['model_dis'])
 
     optimizer,optimizer_dis  = build_optim(args, model.parameters(), model_dis.parameters())
-    optimizer.load_state_dict(checkpoint['optimizer'])
+    #optimizer.load_state_dict(checkpoint['optimizer'])
     #optimizer_dis.load_state_dict(checkpoint['optimizer_dis'])
     return checkpoint, model,model_dis, optimizer, optimizer_dis
 
 
 def build_optim(args, params, params_dis):
-    optimizer = torch.optim.RMSprop(params, args.lr, weight_decay=args.weight_decay)
+    optimizer = torch.optim.Adam(params, args.lr, weight_decay=args.weight_decay)
     optimizer_dis = torch.optim.Adam(params_dis,lr=2e-4, betas=(0.5, 0.999))
     return optimizer, optimizer_dis
 
@@ -362,9 +364,9 @@ def create_arg_parser():
     parser.add_argument('--num-chans', type=int, default=32, help='Number of U-Net channels')
 
     parser.add_argument('--batch-size', default=32, type=int, help='Mini batch size')
-    parser.add_argument('--num-epochs', type=int, default=50, help='Number of training epochs')
+    parser.add_argument('--num-epochs', type=int, default=45, help='Number of training epochs')
     parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
-    parser.add_argument('--lr-step-size', type=int, default=40,
+    parser.add_argument('--lr-step-size', type=int, default=15,
                         help='Period of learning rate decay')
     parser.add_argument('--lr-gamma', type=float, default=0.1,
                         help='Multiplicative factor of learning rate decay')
