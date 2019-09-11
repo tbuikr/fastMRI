@@ -247,7 +247,7 @@ def load_model(checkpoint_file):
 
 
 def build_optim(args, params):
-    optimizer = torch.optim.RMSprop(params, args.lr, weight_decay=args.weight_decay)
+    optimizer = torch.optim.Adam(params, args.lr, weight_decay=args.weight_decay)
     return optimizer
 
 
@@ -275,8 +275,9 @@ def main(args):
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_step_size, args.lr_gamma)
     recon_loss_func = L1CSSIMTV(l1_weight=1.0, default_range=12, filter_size=7, reduction='mean', tvloss_weight=1e-4, p=1)
     for epoch in range(start_epoch, args.num_epochs):
-        scheduler.step(epoch)
+        
         train_loss, train_time = train_epoch(args, epoch, model, train_loader, optimizer, recon_loss_func, writer)
+        scheduler.step(epoch)
         dev_loss, dev_time = evaluate(args, epoch, model, dev_loader, writer)
         visualize(args, epoch, model, display_loader, writer)
 
@@ -296,7 +297,7 @@ def create_arg_parser():
     parser.add_argument('--drop-prob', type=float, default=0.0, help='Dropout probability')
     parser.add_argument('--num-chans', type=int, default=32, help='Number of U-Net channels')
 
-    parser.add_argument('--batch-size', default=4, type=int, help='Mini batch size')
+    parser.add_argument('--batch-size', default=16, type=int, help='Mini batch size')
     parser.add_argument('--num-epochs', type=int, default=50, help='Number of training epochs')
     parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
     parser.add_argument('--lr-step-size', type=int, default=15,
