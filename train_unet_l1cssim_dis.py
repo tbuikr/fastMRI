@@ -296,12 +296,12 @@ def load_model(checkpoint_file):
         model = torch.nn.DataParallel(model)
         model_dis= torch.nn.DataParallel(model_dis)
     model.load_state_dict(checkpoint['model'])
-    model_dis.load_state_dict(checkpoint['model_dis'])
+    #model_dis.load_state_dict(checkpoint['model_dis'])
 
     optimizer,optimizer_dis  = build_optim(args, model.parameters(), model_dis.parameters())
     optimizer.load_state_dict(checkpoint['optimizer'])
-    optimizer_dis.load_state_dict(checkpoint['optimizer_dis'])
-    return checkpoint, model, optimizer, optimizer_dis
+    #optimizer_dis.load_state_dict(checkpoint['optimizer_dis'])
+    return checkpoint, model,model_dis, optimizer, optimizer_dis
 
 
 def build_optim(args, params, params_dis):
@@ -315,7 +315,8 @@ def main(args):
     writer = SummaryWriter(log_dir=args.exp_dir / 'summary')
 
     if args.resume:
-        checkpoint, model, optimizer, optimizer_dis = load_model(args.checkpoint)
+        print ('--------------Resume ---------------------')
+        checkpoint, model, model_dis, optimizer, optimizer_dis = load_model(args.checkpoint)
         args = checkpoint['args']
         best_dev_loss = checkpoint['best_dev_loss']
         start_epoch = checkpoint['epoch']
