@@ -23,7 +23,7 @@ from common.subsample import MaskFunc
 from data import transforms
 from data.mri_data import SliceData
 from models.unet.unet_transpose import define_Gen
-from metrics.custom_losses import L1CSSIMTV
+from metrics.custom_losses import ECSSIMTV
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -298,7 +298,7 @@ def main(args):
 
     train_loader, dev_loader, display_loader = create_data_loaders(args)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_step_size, args.lr_gamma)
-    recon_loss_func = L1CSSIMTV(l1_weight=1.0, default_range=12, filter_size=7, reduction='mean', tvloss_weight=1e-4, p=1)
+    recon_loss_func = ECSSIMTV(l1_weight=1.0, default_range=12, filter_size=7, reduction='mean', tvloss_weight=1e-4, p=1)
     for epoch in range(start_epoch, args.num_epochs):
         
         train_loss, train_time = train_epoch(args, epoch, model, train_loader, optimizer, recon_loss_func, writer)
@@ -320,7 +320,7 @@ def create_arg_parser():
     parser = Args()
     parser.add_argument('--num-pools', type=int, default=4, help='Number of U-Net pooling layers')
     parser.add_argument('--drop-prob', type=float, default=0.0, help='Dropout probability')
-    parser.add_argument('--num-chans', type=int, default=32, help='Number of U-Net channels')
+    parser.add_argument('--num-chans', type=int, default=128, help='Number of U-Net channels')
 
     parser.add_argument('--batch-size', default=16, type=int, help='Mini batch size')
     parser.add_argument('--num-epochs', type=int, default=50, help='Number of training epochs')
