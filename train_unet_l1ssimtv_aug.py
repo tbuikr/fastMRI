@@ -24,12 +24,12 @@ from common.subsample import MaskFunc
 from data import transforms
 from data.mri_data import SliceData
 from models.unet.unet_model import UnetModel
-from metrics.custom_losses import ECSSIMTV
+from metrics.custom_losses import L1CSSIMTV
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-os.environ['CUDA_VISIBLE_DEVICES']='0'
+os.environ['CUDA_VISIBLE_DEVICES']='1'
 
 
 class DataTransform:
@@ -305,7 +305,7 @@ def main(args):
 
     train_loader, dev_loader, display_loader = create_data_loaders(args)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_step_size, args.lr_gamma)
-    recon_loss_func = ECSSIMTV(l1_weight=1.0, default_range=12, filter_size=7, reduction='mean', tvloss_weight=1e-4, p=1)
+    recon_loss_func = L1CSSIMTV(l1_weight=1.0, default_range=12, filter_size=7, reduction='mean', tvloss_weight=1e-4, p=1)
     for epoch in range(start_epoch, args.num_epochs):
         
         train_loss, train_time = train_epoch(args, epoch, model, train_loader, optimizer, recon_loss_func, writer)
