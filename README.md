@@ -1,10 +1,15 @@
+
+## Run ESSIMTV + AUG + Attention
+python train_unet_essimtv_aug_scSE.py --challenge singlecoil --data-path ../../Knee_fastMRI/ --exp-dir checkpoint --netG unet_upsampling_scSE --batch-size 16 --num-chans 128
+
+
 ## Run L1+SSIm+TV+newnet+res+aug
 ```
-python train_unet_l1cssimtv_unet_transpose.py --challenge singlecoil --data-path ../../Knee_fastMRI/ --exp-dir checkpoint --aug True --batch_size 16 --netG unet_transpose_res
+CUDA_VISIBLE_DEVICES=0 python train_unet_l1cssimtv_unet_transpose.py --challenge singlecoil --data-path ../../Knee_fastMRI/ --exp-dir checkpoint --aug True --batch_size 16 --netG unet_transpose_res
 ```
 ## Run L1+ssim+tv+newunet+aug
 ```
-python train_unet_l1cssimtv_unet_transpose.py --challenge singlecoil --data-path ../../Knee_fastMRI/ --exp-dir checkpoint --aug True --batch_size 16
+CUDA_VISIBLE_DEVICES=0 python train_unet_l1cssimtv_unet_transpose.py --challenge singlecoil --data-path ../../Knee_fastMRI/ --exp-dir checkpoint --aug True --batch_size 16
 ```
 
 ## Run L1+ssim+tv+newunet
@@ -26,6 +31,10 @@ python evaluate.py --target-path ../../Knee_fastMRI/singlecoil_val --predictions
 python run_unet_transpose.py --data-path ../../Knee_fastMRI/ --data-split test --checkpoint ./checkpoint/best_model.pt --challenge singlecoil --out-dir /media/toanhoi/Data/Knee_fastMRI/reconstructions_test --batch-size 16 --netG unet_transpose
 ```
 
+## Run with modified unet using up-sampling
+```
+python train_unet_l1cssimtv_unet_transpose.py --challenge singlecoil --data-path ../../Knee_fastMRI/ --exp-dir checkpoint --netG unet_upsampling
+```
 ## =============BASELINE=========
 
 ## Run train l1+ssim
