@@ -12,7 +12,7 @@ python run_unet_transpose.py --data-path ../../Knee_fastMRI --data-split val --c
 
 ```
 
-## Run evaluate ESSIMTV + Aug + Dilation + Resnet +128 without TTA
+## Run evaluate ESSIMTV + Aug + Dilation + Resnet +128 with TTA
 
 ```
 python run_unet_transpose.py --data-path ../../Knee_fastMRI --data-split val --checkpoint ./checkpoint/model.pt --challenge singlecoil --out-dir /media/toanhoi/Data/Knee_fastMRI/reconstructions_val --mask-kspace --batch-size 16 --netG unet_upsampling_dilation  --tta 1
