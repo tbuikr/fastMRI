@@ -114,7 +114,17 @@ def run_unet(args, model, data_loader):
     with torch.no_grad():
         for (input, mean, std, fnames, slices) in data_loader:
             input = input.unsqueeze(1).to(args.device)
+          
             recons = model(input).to('cpu').squeeze(1)
+            if args.tta==1:
+                input_aug = input.clone()
+                input_aug = torch.flip(input, [3])
+                recons_aug = model(input)
+                recons_aug = torch.flip(recons_aug,[3])
+                recons = recons +   recons_aug.to('cpu').squeeze(1)
+                #print (recons.shape)
+                recons = recons / 2.0
+
             for i in range(recons.shape[0]):
                 recons[i] = recons[i] * std[i] + mean[i]
                 reconstructions[fnames[i]].append((slices[i].numpy(), recons[i].numpy()))
@@ -148,6 +158,7 @@ def create_arg_parser():
     parser.add_argument('--batch-size', default=16, type=int, help='Mini-batch size')
     parser.add_argument('--device', type=str, default='cuda', help='Which device to run on')
     parser.add_argument('--netG', type=str, default='unet_transpose', help='name of gen net')
+    parser.add_argument('--tta', type=int, default=0, help='TTA')
     return parser
 
 
