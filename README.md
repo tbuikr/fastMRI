@@ -1,7 +1,34 @@
+## Run training ESSIMTV + Aug + Dilation + Resnet +128
+```
+python train_unet_essimtv_aug_scSE.py --challenge singlecoil --data-path /media/toanhoi/88f64337-6c11-4924-a165-ca6fefb38002/home/toanhoi/KneeData --exp-dir checkpoint --netG unet_upsampling_dilation --batch-size 16 --num-chans 128
+
+```
+## Run evaluate ESSIMTV + Aug + Dilation + Resnet +128 without TTA
+```
+python run_unet_transpose.py --data-path ../../Knee_fastMRI --data-split val --checkpoint ./checkpoint/model.pt --challenge singlecoil --out-dir /media/toanhoi/Data/Knee_fastMRI/reconstructions_val --mask-kspace --batch-size 16 --netG unet_upsampling_dilation 
+```
+```
+ python evaluate.py --target-path ../../Knee_fastMRI/singlecoil_val --predictions-path /media/toanhoi/Data/Knee_fastMRI/reconstructions_val --challenge singlecoil
+
+```
+
+## Run evaluate ESSIMTV + Aug + Dilation + Resnet +128 without TTA
+
+```
+python run_unet_transpose.py --data-path ../../Knee_fastMRI --data-split val --checkpoint ./checkpoint/model.pt --challenge singlecoil --out-dir /media/toanhoi/Data/Knee_fastMRI/reconstructions_val --mask-kspace --batch-size 16 --netG unet_upsampling_dilation  --tta 1
+```
+```
+ python evaluate.py --target-path ../../Knee_fastMRI/singlecoil_val --predictions-path /media/toanhoi/Data/Knee_fastMRI/reconstructions_val --challenge singlecoil
+
+```
+
+## -----------------------------------Old --------------------------------
+
 
 ## Run ESSIMTV + AUG + Attention
+```
 python train_unet_essimtv_aug_scSE.py --challenge singlecoil --data-path ../../Knee_fastMRI/ --exp-dir checkpoint --netG unet_upsampling_scSE --batch-size 16 --num-chans 128
-
+```
 
 ## Run L1+SSIm+TV+newnet+res+aug
 ```
