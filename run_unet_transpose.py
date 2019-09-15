@@ -111,19 +111,28 @@ def load_model(checkpoint_file, netG):
 def run_unet(args, model, data_loader):
     model.eval()
     reconstructions = defaultdict(list)
+    dim_augs= [[3]]
+    print ('Leng of dim aug ', len(dim_augs))
     with torch.no_grad():
         for (input, mean, std, fnames, slices) in data_loader:
-            input = input.unsqueeze(1).to(args.device)
-          
+            input = input.unsqueeze(1).to(args.device)          
             recons = model(input).to('cpu').squeeze(1)
             if args.tta==1:
-                input_aug = input.clone()
-                input_aug = torch.flip(input, [3])
-                recons_aug = model(input)
-                recons_aug = torch.flip(recons_aug,[3])
-                recons = recons +   recons_aug.to('cpu').squeeze(1)
-                #print (recons.shape)
-                recons = recons / 2.0
+                for ind in range (len(dim_augs)):
+                    input_aug = input.clone()
+                    input_aug = torch.flip(input_aug, dim_augs[ind])
+                    recons_aug = model(input_aug)
+                    recons_aug = torch.flip(recons_aug,dim_augs[ind])
+                    recons = recons +   recons_aug.to('cpu').squeeze(1)
+                    #print (recons.shape)
+                # input_aug = input.clone()
+                # input_aug = torch.flip(input_aug, dims=[-2,-1])
+                # recons_aug = model(input_aug)
+                # recons_aug = torch.flip(recons_aug,dims=[-2,-1])
+                # recons = recons +   recons_aug.to('cpu').squeeze(1)
+                    #print (recons.shape)
+                #ds_slice = torch.flip(ds_slice, dims=[-2, -1])
+                recons = recons / (len(dim_augs)+1) # 1 because pred from original
 
             for i in range(recons.shape[0]):
                 recons[i] = recons[i] * std[i] + mean[i]
