@@ -1143,7 +1143,7 @@ def define_Gen(input_nc, output_nc, ngf, netG, norm='batch', drop_prob=0.0):
     elif netG == 'unet_transpose_res':
         gen_net = UnetResGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, drop_prob= drop_prob) 
     elif netG == 'mwcnn':
-        gen_net = mwcnnGen(input_nc, output_nc) 
+        gen_net = mwcnnGen(input_nc, ngf) 
     else:
         raise NotImplementedError('Generator model name [%s] is not recognized' % netG)
 
